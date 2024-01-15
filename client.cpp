@@ -1,5 +1,3 @@
-// Client side C program to demonstrate Socket
-// programming
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,135 +9,131 @@
 
 #define PORT 8080
 
-char username[MAX_LEN_USER_AND_PASSW] ="testuser";
-char password[MAX_LEN_USER_AND_PASSW] ="testpass";
-uint8_t bytte = 0x00;
+char username[MAX_SIZE_USER_AND_PASSW] = "testuser";
+char password[MAX_SIZE_USER_AND_PASSW] = "testpass";
+
 uint8_t message_sequence = 87;
 uint32_t initial_key = 0x00;
 
-
-
+//./client "hola mundo" "testuser" "testpass"
+//g++ cryptogr.cpp client.cpp -o client && g++ cryptogr.cpp server.cpp -o  server
 int main(int argc, char const* argv[])
 {
-    int status, valread, client_fd;
+    int status, value_read, client_fd;
     struct sockaddr_in serv_addr;
 
-    uint8_t checkSumPassword = 0, checkSumUserName = 0;
-    char message[65535] = "hola julian, mensaje cifrado algo mas";
+    char message[MAX_SIZE_BUFFER] = "hola julian, mensaje cifrado algo mas";
     size_t lenmsg = 0;
     cryptography cryptation;
     struct data_t data;
-    //data.echo.login.cipher_message = new uint8_t[len_msg];
-    uint8_t *cipher_key_ptr;
+    int go_on = 1;
 
     if(argc < 2 ){
-        printf("bad argumnets: ./main \"message to send\"\n");
+        printf("bad argumnets: ./main \"message to send\" \"user\" \"password\"\n");
         return 0;
     }
 
-    if (argv[1] != nullptr) {
+    if (argv[1] != nullptr &&  argv[2] != nullptr && argv[3] != nullptr) {
         memset(message, 0, sizeof(message));
+        memset(username, 0, sizeof(username));
+        memset(password, 0, sizeof(password));
         strncpy(message, argv[1], strlen(argv[1]));
-
+        strncpy(username, argv[2], strlen(argv[2]));
+        strncpy(password, argv[3], strlen(argv[3]));
+        //printf("user: %s pass: %s\n",username, password);
+    } else {
+        printf("bad argumnets: ./main \"message to send\" \"user\" \"password\"\n");
+        return 0;
     }
-    lenmsg = strlen(message);
-    checkSumPassword = cryptation.checkSum(password);
-    checkSumUserName = cryptation.checkSum(username);
-    initial_key =  ((message_sequence << 16) | (checkSumUserName << 8) | (checkSumPassword));
 
-    /*login request*/
-    strncpy((char*)data.login.request.user_name, username, strlen(username) + 1);
-    strncpy((char*)data.login.request.password, password, strlen(password) + 1);
-    data.login.request.header.sequence = message_sequence;
-    data.login.request.header.type = 0;
-    data.login.request.header.size = sizeof(data.login.request);
-
-    char buffer[1024] = { 0 };
+    char buffer[MAX_SIZE_BUFFER] = { 0 };
     if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Socket creation error \n");
         return -1;
     }
- 
+
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
- 
+
     // Convert IPv4 and IPv6 addresses from text to binary
-    // form
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
         printf("\nInvalid address/ Address not supported \n");
         return -1;
     }
- 
+
     if ((status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
         printf("\nConnection Failed \n");
         return -1;
     }
 
-    int go_on = 1;
-    send(client_fd, &data.login.request, sizeof(data.login.request), 0);
-    printf("Hello message sent\n");
+
+    lenmsg = strlen(message);
+    initial_key =  ((message_sequence << 16) |
+                    (cryptation.checkSum(username) << 8) |
+                    cryptation.checkSum(password));
+
+    /*login request*/
+
+    cases_t cases = LOGIN_REQUEST;
+
     while(go_on == 1){
-        memset(buffer, 0, sizeof(buffer));
-        valread = read(client_fd, buffer, 1024 - 1); // subtract 1 for the null
-                                  // terminator at the end
-        switch (buffer[2]) /*type*/
-        {
-        case 1:
-            /* login response */
-            memcpy(&data.login.response, buffer, buffer[1] << 8 | buffer[0]);
-            printf("size: %ld, sequence: %d, type: %d, statusCode: %d .\n",data.login.response.header.size ,
-            data.login.response.header.sequence, data.login.response.header.type,
-            data.login.response.status_code);
 
-        if (data.login.response.status_code == 1) //0=failed 1=OK
-        {
-            data.echo.request.header.sequence = data.login.request.header.sequence;
-            data.echo.request.header.type = 2;
+        /*type*/
+        switch (cases) {
+            case WAITING:
+                memset(buffer, 0, sizeof(buffer));
+                value_read = read(client_fd, buffer, MAX_SIZE_BUFFER - 1);
+                cases = (cases_t)buffer[OFFSET_HEADER_TYPE];
+                break;
 
+            case LOGIN_REQUEST:
+                strncpy((char*)data.login.request.user_name, username, strlen(username) + 1);
+                strncpy((char*)data.login.request.password, password, strlen(password) + 1);
+                data.login.request.header.sequence = message_sequence;
+                data.login.request.header.type = LOGIN_REQUEST;
+                data.login.request.header.size = sizeof(data.login.request);
 
-            data.echo.request.cipher_size = lenmsg;
-            data.echo.request.header.size = sizeof(data.echo.request.header) +
-                data.echo.request.cipher_size + sizeof(data.echo.request.cipher_size);
+                send(client_fd, &data.login.request, sizeof(data.login.request), 0);
+                cases = WAITING; //  should arrive <--- 1
 
-            cipher_key_ptr = cryptation.getCipherKeyArray(lenmsg, initial_key);
-            //uint8_t *cipher_text_ptr = cryptation.getCipherTextArray(lenmsg, message);
-            memcpy(data.echo.request.cipher_message, cryptation.getCipherTextArray(lenmsg, message), lenmsg);
-                printf("\n\n cipher_text:\n");
-    for (size_t i = 0; i < lenmsg; i++)
-    {
-        //printf("%02X ",data.echo.request.cipher_message[i]);
+                break;
+            case LOGIN_RESPONSE:
+                /* login response */
+                memcpy(&data.login.response, buffer, buffer[OFFSET_HEADER_SIZE_MSB] << 8 | buffer[OFFSET_HEADER_SIZE_LSB]);
+
+                if (data.login.response.status_code == STATUS_CODE_OK) {
+                    cases = ECHO_REQUEST;
+                } else {
+                    go_on = 0; // close client
+                }
+                break;
+            case ECHO_REQUEST:
+                data.echo.request.header.sequence = data.login.request.header.sequence;
+                data.echo.request.header.type = ECHO_REQUEST;
+
+                data.echo.request.cipher_size = lenmsg;
+                data.echo.request.header.size = sizeof(data.echo.request.header) +
+                    data.echo.request.cipher_size + sizeof(data.echo.request.cipher_size);
+
+                cryptation.getCipherKeyArray(lenmsg, initial_key);
+                memcpy(data.echo.request.cipher_message, cryptation.getCipherTextArray(lenmsg, message), lenmsg);
+                send(client_fd, &data.echo.request, sizeof(data.echo.request) , 0);
+                cases = WAITING; //  should arrive <--- 3
+                break;
+            case ECHO_RESPONSE:
+
+                /* echo response */
+                memcpy(&data.echo.response, buffer, buffer[OFFSET_HEADER_SIZE_MSB] << 8 | buffer[OFFSET_HEADER_SIZE_LSB]);
+                printf("\nResponse: %s\n", data.echo.response.plain_message);
+                go_on = 0;
+                break;
+
+            default:
+                go_on = 0;
+                break;
+        }
     }
-            send(client_fd, &data.echo.request, sizeof(data.echo.request) , 0);
-            //send(client_fd, data.echo.request.cipher_message, data.echo.request.cipher_size, 0);
-            printf("Hello message sent statusCode %d\n", data.echo.request.header.type);
-            
-        }
 
-        for(int i=0; i < strlen(message); i++){
-            //printf("buffer[%d]: %02X %c\n",i, buffer[i], buffer[i]);
-        }
-
-            break;
-        case 3:
-
-            /* echo response */
-            memcpy(&data.echo.response, buffer, buffer[1] << 8 | buffer[0]);
-            printf("size: %ld, sequence: %d, type: %d.\n",data.echo.response.header.size ,
-                data.echo.response.header.sequence, data.echo.response.header.type);
-            printf("text: %s\n", data.echo.response.plain_message);
-        for(int i=0; i < strlen(message); i++){
-            //printf("buffer[%d]: %02X %c\n",i, buffer[i], buffer[i]);
-        }
-            go_on = 0;
-            break;
-        default:
-            break;
-        }
-
-
-    }
-    // closing the connected socket
     close(client_fd);
-    //delete data.echo.request.cipher_message;
     return 0;
 }
