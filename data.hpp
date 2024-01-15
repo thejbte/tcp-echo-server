@@ -24,8 +24,8 @@ struct header_t {
 /*type 0*/
 struct login_request_t {
     struct header_t  header;
-    uint8_t user_name[32] = {0};
-    uint8_t password[32] = {0};
+    uint8_t user_name[MAX_LEN_USER_AND_PASSW] = {0};
+    uint8_t password[MAX_LEN_USER_AND_PASSW] = {0};
 };
 
 /*type 1*/
@@ -38,14 +38,14 @@ struct login_response_t {
 struct echo_request_t {
     struct header_t  header;
     uint16_t cipher_size;
-    uint8_t *cipher_message;
+    uint8_t cipher_message[65535];
 };
 
 /*type 3*/
 struct echo_response_t {
     struct header_t  header;
     uint16_t decipher_size;
-    uint8_t *plain_message;
+    uint8_t plain_message[65535];
 };
 
 struct echo_t {

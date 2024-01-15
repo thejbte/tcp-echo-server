@@ -3,14 +3,14 @@
                               Online C++ Compiler.
                Code, Compile, Run and Debug C++ program online.
 Write your code in this editor and press "Run" button to compile and execute it.
-
+g++ main.cpp crypt.cpp -g -o main
 *******************************************************************************/
 
 #include <iostream>
 #include <string>
 #include <stdint.h>
 #include <cstring>
-#include "crypt.hpp"
+#include "cryptogr.hpp"
 #include "data.hpp"
 
 using namespace std;
@@ -37,7 +37,7 @@ int main()
     uint8_t checkSumPassword = 0, checkSumUserName = 0;
     char message[65535] = "hola julian, mensaje cifrado algo mas";
     size_t lenmsg = strlen(message);
-    crypt cryptation;
+    cryptography cryptation;
     struct data_t data;
     //data.echo.login.cipher_message = new uint8_t[len_msg];
 
@@ -46,7 +46,7 @@ int main()
     initial_key =  ((message_sequence << 16) | (checkSumUserName << 8) | (checkSumPassword));
 
     /*login request*/
-    strncpy((char*)data.login.request.password, username, strlen(password) + 1);
+    strncpy((char*)data.login.request.password, password, strlen(password) + 1);
     strncpy((char*)data.login.request.user_name, username, strlen(username) + 1);
     data.login.request.header.sequence = message_sequence;
     data.login.request.header.type = 0;
