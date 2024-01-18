@@ -7,7 +7,7 @@
 #include "data.hpp"
 #include <iostream>
 
-#define PORT 8080
+#define PORT 3000
 
 char username[MAX_SIZE_USER_AND_PASSW] = "testuser";
 char password[MAX_SIZE_USER_AND_PASSW] = "testpass";
