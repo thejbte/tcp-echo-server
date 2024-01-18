@@ -17,16 +17,20 @@ uint32_t initial_key = 0x00;
 
 //./client "hola mundo" "testuser" "testpass"
 //g++ cryptogr.cpp client.cpp -o client && g++ cryptogr.cpp server.cpp -o  server
+
+void client_flow(int client_fd, char *message);
+
+
+
+
+
+
 int main(int argc, char const* argv[])
 {
-    int status, value_read, client_fd;
+    int status, client_fd;
     struct sockaddr_in serv_addr;
 
     char message[MAX_SIZE_BUFFER] = "hola julian, mensaje cifrado algo mas";
-    size_t lenmsg = 0;
-    cryptography cryptation;
-    struct data_t data;
-    int go_on = 1;
 
     if(argc < 2 ){
         printf("bad argumnets: ./main \"message to send\" \"user\" \"password\"\n");
@@ -66,15 +70,35 @@ int main(int argc, char const* argv[])
         return -1;
     }
 
+    /*loop*/
+    client_flow(client_fd, message);
 
-    lenmsg = strlen(message);
+
+    close(client_fd);
+    return 0;
+}
+
+
+
+
+
+
+
+void client_flow(int client_fd, char *message) {
+
+    char buffer[MAX_SIZE_BUFFER] = { 0 };
+    struct data_t data;
+    uint32_t initial_key = 0x00;
+    cryptography cryptation;
+    cases_t cases = LOGIN_REQUEST;
+    int go_on = 1;
+    int value_read;
+    size_t lenmsg = strlen(message);
+
     initial_key =  ((message_sequence << 16) |
                     (cryptation.checkSum(username) << 8) |
                     cryptation.checkSum(password));
 
-    /*login request*/
-
-    cases_t cases = LOGIN_REQUEST;
 
     while(go_on == 1){
 
@@ -133,7 +157,4 @@ int main(int argc, char const* argv[])
                 break;
         }
     }
-
-    close(client_fd);
-    return 0;
 }

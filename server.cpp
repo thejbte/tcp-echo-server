@@ -9,6 +9,11 @@
 
 #define PORT 8080
 
+void server_flow(int new_socket);
+
+
+
+
 //./server
 int main(int argc, char const* argv[])
 {
@@ -17,14 +22,6 @@ int main(int argc, char const* argv[])
     struct sockaddr_in address;
     int opt = 1;
     socklen_t addrlen = sizeof(address);
-    char buffer[MAX_SIZE_BUFFER] = { 0 };
-
-
-    cryptography cryptation;
-    struct data_t data;
-    uint32_t initial_key = 0x00;
-    int go_on = 1;
-
 
 
     // Creating socket file descriptor
@@ -43,7 +40,7 @@ int main(int argc, char const* argv[])
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
- 
+
     // Forcefully attaching socket to the port 8080
     if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
         perror("bind failed");
@@ -58,8 +55,30 @@ int main(int argc, char const* argv[])
         exit(EXIT_FAILURE);
     }
 
+    /*loop*/
+    server_flow(new_socket);
 
+
+    close(new_socket);
+    close(server_fd);
+    return 0;
+}
+
+
+
+
+
+
+
+void server_flow(int new_socket) {
+
+    char buffer[MAX_SIZE_BUFFER] = { 0 };
+    struct data_t data;
+    uint32_t initial_key = 0x00;
+    cryptography cryptation;
     cases_t cases = WAITING;
+    int go_on = 1;
+    int value_read;
 
     while(go_on == 1){
 
@@ -122,14 +141,10 @@ int main(int argc, char const* argv[])
             printf("\n\nDeciper text: %s\n", data.echo.response.plain_message);
             send(new_socket, &data.echo.response, sizeof(data.echo.response), 0);
             go_on = 0;
-            close(new_socket);
             break;
         default:
             break;
         }
 
     }
-
-    close(server_fd);
-    return 0;
 }
