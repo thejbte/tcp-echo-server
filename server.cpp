@@ -25,7 +25,10 @@ void getOpcParser(int argc, char const* argv[]);
 
 
 //netstat -vanp tcp | grep 3000
-//./server
+
+//./server -d 1
+//./server -d 2
+//./server -h
 int main(int argc, char const* argv[])
 {
 

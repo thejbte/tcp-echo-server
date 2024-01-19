@@ -9,6 +9,10 @@
 
 #define PORT 3000
 
+#define ARG_PASSW   (3)
+#define ARG_USER    (2)
+#define ARG_MSG     (1)
+
 char username[MAX_SIZE_USER_AND_PASSW] = "testuser";
 char password[MAX_SIZE_USER_AND_PASSW] = "testpass";
 
@@ -16,6 +20,7 @@ uint8_t message_sequence = 87;
 uint32_t initial_key = 0x00;
 
 //./client "hola mundo" "testuser" "testpass"
+
 //g++ cryptogr.cpp client.cpp -o client && g++ cryptogr.cpp server.cpp -o  server
 
 void client_flow(int client_fd, char *message);
@@ -37,14 +42,13 @@ int main(int argc, char const* argv[])
         return 0;
     }
 
-    if (argv[1] != nullptr &&  argv[2] != nullptr && argv[3] != nullptr) {
+    if (argv[ARG_MSG] != nullptr &&  argv[ARG_USER] != nullptr && argv[ARG_PASSW] != nullptr) {
         memset(message, 0, sizeof(message));
         memset(username, 0, sizeof(username));
         memset(password, 0, sizeof(password));
-        strncpy(message, argv[1], strlen(argv[1]));
-        strncpy(username, argv[2], strlen(argv[2]));
-        strncpy(password, argv[3], strlen(argv[3]));
-        //printf("user: %s pass: %s\n",username, password);
+        strncpy(message, argv[ARG_MSG], strlen(argv[ARG_MSG]));
+        strncpy(username, argv[ARG_USER], strlen(argv[ARG_USER]));
+        strncpy(password, argv[ARG_PASSW], strlen(argv[ARG_PASSW]));
     } else {
         printf("bad argumnets: ./main \"message to send\" \"user\" \"password\"\n");
         return 0;
@@ -123,7 +127,9 @@ void client_flow(int client_fd, char *message) {
                 break;
             case LOGIN_RESPONSE:
                 /* login response */
-                memcpy(&data.login.response, buffer, buffer[OFFSET_HEADER_SIZE_MSB] << 8 | buffer[OFFSET_HEADER_SIZE_LSB]);
+                memcpy(&data.login.response, buffer,
+                     buffer[OFFSET_HEADER_SIZE_MSB] << 8 |
+                     buffer[OFFSET_HEADER_SIZE_LSB]);
 
                 if (data.login.response.status_code == STATUS_CODE_OK) {
                     cases = ECHO_REQUEST;
@@ -140,14 +146,18 @@ void client_flow(int client_fd, char *message) {
                     data.echo.request.cipher_size + sizeof(data.echo.request.cipher_size);
 
                 cryptation.getCipherKeyArray(lenmsg, initial_key);
-                memcpy(data.echo.request.cipher_message, cryptation.getCipherTextArray(lenmsg, message), lenmsg);
+                memcpy(data.echo.request.cipher_message,
+                    cryptation.getCipherTextArray(lenmsg, message), lenmsg);
                 send(client_fd, &data.echo.request, sizeof(data.echo.request) , 0);
                 cases = WAITING; //  should arrive <--- 3
                 break;
             case ECHO_RESPONSE:
 
                 /* echo response */
-                memcpy(&data.echo.response, buffer, buffer[OFFSET_HEADER_SIZE_MSB] << 8 | buffer[OFFSET_HEADER_SIZE_LSB]);
+                memcpy(&data.echo.response, buffer,
+                buffer[OFFSET_HEADER_SIZE_MSB] << 8 |
+                buffer[OFFSET_HEADER_SIZE_LSB]);
+
                 printf("\nResponse: %s\n", data.echo.response.plain_message);
                 go_on = 0;
                 break;

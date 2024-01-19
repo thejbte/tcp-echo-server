@@ -1,3 +1,6 @@
+#ifndef __DATA_HPP_
+#define __DATA_HPP_
+
 #include <stdint.h>
 
 #pragma pack(push)  /* push current alignment to stack */
@@ -72,3 +75,5 @@ struct data_t {
 };
 
 #pragma pack(pop)   /* restore original alignment from stack */
+
+#endif /*__DATA_HPP_**/
